@@ -14,7 +14,7 @@ import (
 	"github.com/sagernet/quic-go"
 	"github.com/sagernet/quic-go/congestion"
 	"github.com/sagernet/quic-go/http3"
-	"github.com/sagernet/sing-quic"
+	qtls "github.com/sagernet/sing-quic"
 	congestion_meta1 "github.com/sagernet/sing-quic/congestion_meta1"
 	congestion_meta2 "github.com/sagernet/sing-quic/congestion_meta2"
 	"github.com/sagernet/sing-quic/hysteria"
@@ -81,6 +81,7 @@ func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
 		MaxIdleTimeout:                 hysteria.DefaultMaxIdleTimeout,
 		KeepAlivePeriod:                hysteria.DefaultKeepAlivePeriod,
 		DisablePathManager:             true,
+		Allow0RTT:                      true,
 	}
 	if options.MasqueradeHandler == nil {
 		options.MasqueradeHandler = http.NotFoundHandler()
@@ -122,7 +123,7 @@ func (s *Service[U]) Start(conn net.PacketConn) error {
 	if err != nil {
 		return err
 	}
-	listener, err := qtls.Listen(conn, s.tlsConfig, s.quicConfig)
+	listener, err := qtls.ListenEarly(conn, s.tlsConfig, s.quicConfig)
 	if err != nil {
 		return err
 	}
@@ -137,7 +138,7 @@ func (s *Service[U]) Close() error {
 	)
 }
 
-func (s *Service[U]) loopConnections(listener qtls.Listener) {
+func (s *Service[U]) loopConnections(listener qtls.EarlyListener) {
 	for {
 		connection, err := listener.Accept(s.ctx)
 		if err != nil {
